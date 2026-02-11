@@ -63,52 +63,111 @@ header {
     padding: 15px 0;
     border-top: 1px solid #222;
 }
-
-.bottom-nav div {
-    color: #888;
-    font-size: 14px;
-}
-
-.bottom-nav div.active {
-    color: #00ff88;
-}
 </style>
 </head>
 
 <body>
 
-<header>
-J&J Sports
-</header>
+<header>J&J Sports</header>
 
 <div class="container">
 
-<button class="main-btn">Iniciar Atividade</button>
+<button class="main-btn" onclick="startActivity()">Iniciar Atividade</button>
 
 <div class="card">
 <div>Distância</div>
-<div class="metric">0.00 km</div>
+<div class="metric" id="distance">0.00 km</div>
 </div>
 
 <div class="card">
 <div>Tempo</div>
-<div class="metric">00:00</div>
+<div class="metric" id="time">00:00</div>
 </div>
 
 <div class="card">
-<div>Calorias</div>
-<div class="metric">0 kcal</div>
+<div>Calorias (estimado)</div>
+<div class="metric" id="calories">0 kcal</div>
 </div>
 
 </div>
 
 <div class="bottom-nav">
-<div class="active">🏠 Home</div>
-<div>📍 GPS</div>
-<div>🔥 HIIT</div>
-<div>📊 Progresso</div>
-<div>👤 Perfil</div>
+<div>🏠</div>
+<div>📍</div>
+<div>🔥</div>
+<div>📊</div>
+<div>👤</div>
 </div>
+
+<script>
+let watchId;
+let startTime;
+let timerInterval;
+let totalDistance = 0;
+let lastPosition = null;
+
+function startActivity() {
+
+    if (navigator.geolocation) {
+
+        startTime = Date.now();
+
+        timerInterval = setInterval(updateTime, 1000);
+
+        watchId = navigator.geolocation.watchPosition(updatePosition);
+
+        alert("GPS iniciado 🚀");
+
+    } else {
+        alert("GPS não suportado neste dispositivo");
+    }
+}
+
+function updateTime() {
+    let elapsed = Math.floor((Date.now() - startTime) / 1000);
+    let minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    let seconds = String(elapsed % 60).padStart(2, '0');
+    document.getElementById("time").innerText = `${minutes}:${seconds}`;
+
+    let calories = (totalDistance * 60).toFixed(0);
+    document.getElementById("calories").innerText = calories + " kcal";
+}
+
+function updatePosition(position) {
+    let lat = position.coords.latitude;
+    let lon = position.coords.longitude;
+
+    if (lastPosition != null) {
+        totalDistance += calculateDistance(
+            lastPosition.lat,
+            lastPosition.lon,
+            lat,
+            lon
+        );
+    }
+
+    lastPosition = { lat, lon };
+
+    document.getElementById("distance").innerText =
+        (totalDistance / 1000).toFixed(2) + " km";
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+}
+</script>
 
 </body>
 </html>

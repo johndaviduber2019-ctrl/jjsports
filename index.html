@@ -60,6 +60,31 @@ flex-direction:column;
 margin:20px auto;
 font-size:28px;
 transition:0.3s;
+.progress-ring {
+position:absolute;
+width:220px;
+height:220px;
+border-radius:50%;
+border:8px solid rgba(0,255,136,0.2);
+}
+
+.hiit-circle{
+position:relative;
+overflow:hidden;
+}
+
+.bar-fill{
+position:absolute;
+bottom:0;
+left:0;
+width:100%;
+background:#00ff88;
+transition:height 1s linear;
+}
+
+.rest .bar-fill{
+background:#ff4444;
+}
 }
 
 .rest{
@@ -188,13 +213,26 @@ let hiitTime;
 let training = true;
 let currentRound = 1;
 let totalRounds;
+let trainDuration;
+let restDuration;
+let hiitHistory = JSON.parse(localStorage.getItem("hiitHistory")) || [];
+
+function playBeep(){
+let ctx = new (window.AudioContext || window.webkitAudioContext)();
+let oscillator = ctx.createOscillator();
+oscillator.type = "sine";
+oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+oscillator.connect(ctx.destination);
+oscillator.start();
+oscillator.stop(ctx.currentTime + 0.2);
+}
 
 function startHIIT(){
 
 clearInterval(hiitInterval);
 
-let trainDuration = parseInt(document.getElementById("trainTime").value);
-let restDuration = parseInt(document.getElementById("restTime").value);
+trainDuration = parseInt(document.getElementById("trainTime").value);
+restDuration = parseInt(document.getElementById("restTime").value);
 totalRounds = parseInt(document.getElementById("rounds").value);
 
 training = true;
@@ -209,23 +247,23 @@ hiitTime--;
 
 if(hiitTime <= 0){
 
+playBeep();
+navigator.vibrate(300);
+
 if(training){
 training = false;
 hiitTime = restDuration;
-} else {
+}else{
 training = true;
 currentRound++;
 
 if(currentRound > totalRounds){
-stopHIIT();
-alert("HIIT Finalizado 💪🔥");
+finishHIIT();
 return;
 }
 
 hiitTime = trainDuration;
 }
-
-navigator.vibrate(300);
 }
 
 updateHIITDisplay();
@@ -240,19 +278,68 @@ document.getElementById("hiitTimer").innerText="0";
 document.getElementById("hiitRound").innerText="";
 }
 
+function finishHIIT(){
+clearInterval(hiitInterval);
+
+let result = {
+date: new Date().toLocaleString(),
+rounds: totalRounds,
+train: trainDuration,
+rest: restDuration
+};
+
+hiitHistory.push(result);
+localStorage.setItem("hiitHistory", JSON.stringify(hiitHistory));
+
+loadHIITHistory();
+
+alert("HIIT Concluído 💪🔥");
+stopHIIT();
+}
+
 function updateHIITDisplay(){
 
 document.getElementById("hiitTimer").innerText = hiitTime;
 document.getElementById("hiitRound").innerText = "Série " + currentRound + " / " + totalRounds;
 
+let percent = (hiitTime / (training ? trainDuration : restDuration)) * 100;
+
+let circle = document.getElementById("hiitCircle");
+
+circle.innerHTML = `
+<div class="bar-fill" style="height:${percent}%"></div>
+<div style="position:relative;z-index:2;text-align:center">
+<div id="hiitMode">${training ? "TREINO" : "DESCANSO"}</div>
+<div>${hiitTime}</div>
+<div>Série ${currentRound}/${totalRounds}</div>
+</div>
+`;
+
 if(training){
-document.getElementById("hiitMode").innerText = "TREINO";
-document.getElementById("hiitCircle").classList.remove("rest");
-} else {
-document.getElementById("hiitMode").innerText = "DESCANSO";
-document.getElementById("hiitCircle").classList.add("rest");
+circle.classList.remove("rest");
+}else{
+circle.classList.add("rest");
 }
 }
+
+function loadHIITHistory(){
+let container = document.getElementById("hiitHistory");
+container.innerHTML = "";
+
+hiitHistory.reverse().forEach(h=>{
+container.innerHTML += `
+<div style="margin-bottom:8px">
+${h.date}<br>
+${h.rounds} séries | ${h.train}s treino | ${h.rest}s descanso
+</div>
+<hr>
+`;
+});
+}
+
+loadHIITHistory();
+
+
 
 
 /* ===== PESO ===== */

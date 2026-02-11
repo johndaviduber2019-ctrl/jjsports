@@ -97,16 +97,24 @@ Tempo
 
 <hr>
 
-<h3>HIIT (30s treino / 15s descanso)</h3>
+<h3>HIIT Personalizado</h3>
+
+<input type="number" id="trainTime" placeholder="Tempo treino (segundos)" value="30" style="width:100%;padding:10px;border-radius:8px;margin-bottom:8px">
+
+<input type="number" id="restTime" placeholder="Tempo descanso (segundos)" value="15" style="width:100%;padding:10px;border-radius:8px;margin-bottom:8px">
+
+<input type="number" id="rounds" placeholder="Número de séries" value="5" style="width:100%;padding:10px;border-radius:8px;margin-bottom:10px">
 
 <button class="green" onclick="startHIIT()">Iniciar HIIT</button>
+<button class="red" onclick="stopHIIT()">Finalizar HIIT</button>
 
 <div class="hiit-circle" id="hiitCircle">
-<div id="hiitMode">TREINO</div>
-<div id="hiitTimer">30</div>
+<div id="hiitMode">PRONTO</div>
+<div id="hiitTimer">0</div>
+<div id="hiitRound"></div>
 </div>
 
-<hr>
+  
 
 <h3>Controle de Peso</h3>
 
@@ -175,30 +183,49 @@ return R*c;
 }
 
 /* ===== HIIT ===== */
-
 let hiitInterval;
-let hiitTime=30;
-let training=true;
+let hiitTime;
+let training = true;
+let currentRound = 1;
+let totalRounds;
 
 function startHIIT(){
+
 clearInterval(hiitInterval);
-training=true;
-hiitTime=30;
+
+let trainDuration = parseInt(document.getElementById("trainTime").value);
+let restDuration = parseInt(document.getElementById("restTime").value);
+totalRounds = parseInt(document.getElementById("rounds").value);
+
+training = true;
+currentRound = 1;
+hiitTime = trainDuration;
+
 updateHIITDisplay();
 
-hiitInterval=setInterval(()=>{
+hiitInterval = setInterval(()=>{
+
 hiitTime--;
 
-if(hiitTime<=0){
-training=!training;
+if(hiitTime <= 0){
 
 if(training){
-hiitTime=30;
-}else{
-hiitTime=15;
+training = false;
+hiitTime = restDuration;
+} else {
+training = true;
+currentRound++;
+
+if(currentRound > totalRounds){
+stopHIIT();
+alert("HIIT Finalizado 💪🔥");
+return;
 }
 
-navigator.vibrate(500);
+hiitTime = trainDuration;
+}
+
+navigator.vibrate(300);
 }
 
 updateHIITDisplay();
@@ -206,17 +233,27 @@ updateHIITDisplay();
 },1000);
 }
 
+function stopHIIT(){
+clearInterval(hiitInterval);
+document.getElementById("hiitMode").innerText="FINALIZADO";
+document.getElementById("hiitTimer").innerText="0";
+document.getElementById("hiitRound").innerText="";
+}
+
 function updateHIITDisplay(){
-document.getElementById("hiitTimer").innerText=hiitTime;
+
+document.getElementById("hiitTimer").innerText = hiitTime;
+document.getElementById("hiitRound").innerText = "Série " + currentRound + " / " + totalRounds;
 
 if(training){
-document.getElementById("hiitMode").innerText="TREINO";
+document.getElementById("hiitMode").innerText = "TREINO";
 document.getElementById("hiitCircle").classList.remove("rest");
-}else{
-document.getElementById("hiitMode").innerText="DESCANSO";
+} else {
+document.getElementById("hiitMode").innerText = "DESCANSO";
 document.getElementById("hiitCircle").classList.add("rest");
 }
 }
+
 
 /* ===== PESO ===== */
 

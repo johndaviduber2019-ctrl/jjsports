@@ -1,354 +1,114 @@
-index.html
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J&J Sports</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
-body{
-    font-family: Arial;
-    background:#0f172a;
-    color:white;
-    margin:0;
-    padding:15px;
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: #0f0f0f;
+    color: #f5f5f5;
 }
 
-h1{
-    text-align:center;
+header {
+    padding: 20px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #00ff88;
 }
 
-.card{
-    background:#1e293b;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:15px;
+.container {
+    padding: 20px;
 }
 
-button{
-    width:100%;
-    padding:12px;
-    margin-top:8px;
-    border:none;
-    border-radius:10px;
-    background:#22c55e;
-    color:white;
-    font-weight:bold;
+.main-btn {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(90deg, #00ff88, #00cc66);
+    border: none;
+    border-radius: 15px;
+    font-size: 18px;
+    font-weight: 600;
+    color: black;
+    box-shadow: 0 0 20px #00ff88;
+    margin-bottom: 25px;
 }
 
-input{
-    width:100%;
-    padding:8px;
-    margin-top:5px;
-    margin-bottom:8px;
-    border-radius:8px;
-    border:none;
+.card {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 15px rgba(0,255,136,0.2);
 }
 
-#map{
-    height:300px;
-    border-radius:15px;
-    margin-top:10px;
+.metric {
+    font-size: 24px;
+    font-weight: 700;
+    color: #00ff88;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #111;
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 0;
+    border-top: 1px solid #222;
+}
+
+.bottom-nav div {
+    color: #888;
+    font-size: 14px;
+}
+
+.bottom-nav div.active {
+    color: #00ff88;
 }
 </style>
 </head>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <body>
 
-<h1>🏆 J&J Sports</h1>
+<header>
+J&J Sports
+</header>
 
-<!-- GPS CORRIDA -->
+<div class="container">
+
+<button class="main-btn">Iniciar Atividade</button>
+
 <div class="card">
-<h3>🏃 Corrida com GPS</h3>
-<p>Tempo: <span id="runTime">0</span> s</p>
-<p>Distância: <span id="distance">0</span> km</p>
-<p>Velocidade: <span id="speed">0</span> km/h</p>
-<p>Pace: <span id="pace">0</span> min/km</p>
-<button onclick="startRun()">Iniciar Corrida</button>
-<button onclick="stopRun()">Parar</button>
-<div id="map"></div>
-</div><h3>📊 Histórico de Corridas</h3>
-<div id="history"></div>
-<button onclick="clearHistory()">Limpar Histórico</button>
-
-<!-- HIIT -->
-<div class="card">
-<h3>🔥 Treino HIIT Profissional</h3>
-
-<label>Tempo treino (segundos)</label>
-<input type="number" id="workTime" value="30">
-
-<label>Tempo descanso (segundos)</label>
-<input type="number" id="restTime" value="15">
-
-<label>Séries</label>
-<input type="number" id="rounds" value="5">
-
-<h1 id="hiitDisplay">00</h1>
-<h3 id="hiitStatus">Pronto</h3>
-
-<button onclick="startHIIT()">Iniciar HIIT</button>
-<button onclick="stopHIIT()">Parar</button>
+<div>Distância</div>
+<div class="metric">0.00 km</div>
 </div>
 
-<script>
-/* ================= GPS ================= */
+<div class="card">
+<div>Tempo</div>
+<div class="metric">00:00</div>
+</div>
 
-let watchId;
-let startTime;
-let totalDistance = 0;
-let lastPosition = null;
-let runTimer;
-let map;
-let polyline;
-let path = [];
+<div class="card">
+<div>Calorias</div>
+<div class="metric">0 kcal</div>
+</div>
 
-function initMap(lat, lon){
-    map = L.map('map').setView([lat, lon], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-    .addTo(map);
-    polyline = L.polyline([], {weight:5}).addTo(map);
-}
+</div>
 
-function startRun(){
-    totalDistance = 0;
-    lastPosition = null;
-    path = [];
-    startTime = Date.now();
-
-    runTimer = setInterval(()=>{
-        document.getElementById("runTime").innerText =
-        Math.floor((Date.now()-startTime)/1000);
-    },1000);
-
-    watchId = navigator.geolocation.watchPosition(pos=>{
-        let lat = pos.coords.latitude;
-        let lon = pos.coords.longitude;
-
-        if(!map){ initMap(lat, lon); }
-
-        map.setView([lat, lon]);
-        path.push([lat, lon]);
-        polyline.setLatLngs(path);
-
-        if(lastPosition){
-            totalDistance += getDistance(
-                lastPosition.lat,lastPosition.lon,lat,lon);
-        }
-
-        lastPosition = {lat,lon};
-
-        document.getElementById("distance").innerText =
-        totalDistance.toFixed(2);
-
-        let hours = (Date.now()-startTime)/3600000;
-        let speed = totalDistance / hours;
-        document.getElementById("speed").innerText =
-        speed.toFixed(2);
-
-        let pace = totalDistance>0 ?
-        (((Date.now()-startTime)/60000)/totalDistance):0;
-
-        document.getElementById("pace").innerText =
-        pace.toFixed(2);
-
-    },{enableHighAccuracy:true});
-}
-
-function stopRun(){
-  updateRecord();
-    navigator.geolocation.clearWatch(watchId);
-    clearInterval(runTimer);
-
-    let totalTime = Math.floor((Date.now()-startTime)/1000);
-    let pace = totalDistance>0 ?
-    (((Date.now()-startTime)/60000)/totalDistance):0;
-
-    let runData = {
-        date: new Date().toLocaleString(),
-        time: totalTime,
-        distance: totalDistance.toFixed(2),
-        pace: pace.toFixed(2)
-    };
-
-    saveRun(runData);
-    loadHistory();
-    loadChart();
-}function saveRun(data){
-    let runs = JSON.parse(localStorage.getItem("runs")) || [];
-    runs.push(data);
-    localStorage.setItem("runs", JSON.stringify(runs));
-}
-
-function loadHistory(){
-    let runs = JSON.parse(localStorage.getItem("runs")) || [];
-    let historyDiv = document.getElementById("history");
-    historyDiv.innerHTML="";
-    <h3>📈 Evolução de Distância</h3>
-    <h3>🎯 Meta Semanal</h3>
-<input type="number" id="weeklyGoal" placeholder="Meta em km">
-<button onclick="saveGoal()">Salvar Meta</button>
-<p id="goalStatus"></p>
-<canvas id="progressChart"></canvas>
-let chart;
-function saveGoal(){
-    let goal = weeklyGoal.value;
-    localStorage.setItem("weeklyGoal", goal);
-    checkGoal();
-}
-
-function checkGoal(){
-    let goal = localStorage.getItem("weeklyGoal");
-    let runs = JSON.parse(localStorage.getItem("runs")) || [];
-
-    let total = runs.reduce((sum,r)=> sum+parseFloat(r.distance),0);
-
-    if(goal){
-        goalStatus.innerText =
-        "Total: "+total.toFixed(2)+" km / Meta: "+goal+" km";
-    }
-}
-
-window.onload = function(){
-    loadHistory();
-    loadChart();
-    checkGoal();
-}
-<h3>🏆 Seu Recorde</h3>
-<p id="record"></p>
-function updateRecord(){
-    let runs = JSON.parse(localStorage.getItem("runs")) || [];
-
-    if(runs.length>0){
-        let max = Math.max(...runs.map(r=>parseFloat(r.distance)));
-        record.innerText = "Maior distância: "+max+" km";
-    }
-}
-
-window.onload = function(){
-    loadHistory();
-    loadChart();
-    checkGoal();
-    updateRecord();
-}
-
-function loadChart(){
-    let runs = JSON.parse(localStorage.getItem("runs")) || [];
-
-    let labels = runs.map((r,i)=> "Corrida "+(i+1));
-    let distances = runs.map(r=> parseFloat(r.distance));
-
-    let ctx = document.getElementById("progressChart");
-
-    if(chart){ chart.destroy(); }
-
-    chart = new Chart(ctx,{
-        type:'line',
-        data:{
-            labels:labels,
-            datasets:[{
-                label:'Distância (km)',
-                data:distances,
-                borderWidth:3,
-                fill:false
-            }]
-        }
-    });
-}
-
-window.onload = function(){
-    loadHistory();
-    loadChart();
-}
-
-    runs.reverse().forEach(run=>{
-        historyDiv.innerHTML += `
-        <div style="background:#334155;
-        padding:10px;
-        border-radius:10px;
-        margin-bottom:8px;">
-        <b>${run.date}</b><br>
-        Tempo: ${run.time}s<br>
-        Distância: ${run.distance} km<br>
-        Pace: ${run.pace} min/km
-        </div>
-        `;
-    });
-}
-
-function clearHistory(){
-    localStorage.removeItem("runs");
-    loadHistory();
-}
-
-window.onload = loadHistory;
-
-/* ================= HIIT ================= */
-
-let hiitInterval;
-let currentRound=0;
-let timeLeft=0;
-let isWork=true;
-
-function beep(){
-    let ctx=new (window.AudioContext||window.webkitAudioContext)();
-    let osc=ctx.createOscillator();
-    osc.frequency.setValueAtTime(800,ctx.currentTime);
-    osc.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime+0.2);
-}
-
-function startHIIT(){
-    let work=parseInt(workTime.value);
-    let rest=parseInt(restTime.value);
-    let rounds=parseInt(document.getElementById("rounds").value);
-
-    currentRound=1;
-    isWork=true;
-    timeLeft=work;
-
-    hiitStatus.innerText="Treino 1/"+rounds;
-    hiitDisplay.innerText=timeLeft;
-
-    hiitInterval=setInterval(()=>{
-        timeLeft--;
-        hiitDisplay.innerText=timeLeft;
-
-        if(timeLeft<=0){
-            beep();
-
-            if(isWork){
-                isWork=false;
-                timeLeft=rest;
-                hiitStatus.innerText="Descanso";
-            }else{
-                currentRound++;
-                if(currentRound>rounds){
-                    clearInterval(hiitInterval);
-                    hiitStatus.innerText="Finalizado 💪";
-                    return;
-                }
-                isWork=true;
-                timeLeft=work;
-                hiitStatus.innerText=
-                "Treino "+currentRound+"/"+rounds;
-            }
-        }
-    },1000);
-}
-
-function stopHIIT(){
-    clearInterval(hiitInterval);
-    hiitStatus.innerText="Parado";
-}
-</script
+<div class="bottom-nav">
+<div class="active">🏠 Home</div>
+<div>📍 GPS</div>
+<div>🔥 HIIT</div>
+<div>📊 Progresso</div>
+<div>👤 Perfil</div>
+</div>
 
 </body>
 </html>
-<h3>🏆 Seu Recorde</h3>
-<p id="record"></p>
